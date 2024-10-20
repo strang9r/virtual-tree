@@ -1,7 +1,6 @@
 {
   "name": "@strang9r/virtual-tree",
   "author": "Beyond9r",
-  "private": true,
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/virtual-tree.umd.cjs",
