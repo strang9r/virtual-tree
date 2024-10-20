@@ -1,1 +1,0 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/index.ts","./src/components/virtualtree/context.ts","./src/components/virtualtree/hooks.ts","./src/components/virtualtree/index.tsx","./src/components/virtualtree/types.ts","./src/utils/clonearray.ts","./src/utils/clsx.ts","./src/utils/index.ts"],"version":"5.6.3"}

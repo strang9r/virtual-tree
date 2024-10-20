@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path, { resolve } from "path";
 import { fileURLToPath } from "url";
 import { readFile, writeFile } from "fs/promises";
+import dts from "vite-plugin-dts";
 
 function reactVirtualized(): PluginOption {
   const WRONG_CODE = `import { bpfrpt_proptype_WindowScroller } from "../WindowScroller.js";`;
@@ -31,7 +32,7 @@ function reactVirtualized(): PluginOption {
 }
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), reactVirtualized()],
+  plugins: [react(), reactVirtualized(), dts({ include: ["src"] })],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -51,12 +52,12 @@ export default defineConfig({
     rollupOptions: {
       // make sure to externalize deps that shouldn't be bundled
       // into your library
-      external: ["react"],
+      external: ["React"],
       output: {
         // Provide global variables to use in the UMD build
         // for externalized deps
         globals: {
-          vue: "React",
+          react: "React",
         },
       },
     },
