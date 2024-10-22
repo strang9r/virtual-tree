@@ -26,7 +26,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "build:lib": "tsc -b && vite build --mode lib",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "npm run build:lib",
     "lint": "eslint .",
     "preview": "vite preview"
   },
