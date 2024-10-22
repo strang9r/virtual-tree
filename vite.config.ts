@@ -1,9 +1,10 @@
-import { defineConfig, PluginOption } from "vite";
+import { defineConfig, PluginOption, UserConfig } from "vite"; // loadEnv
 import react from "@vitejs/plugin-react-swc";
 import path, { resolve } from "path";
 import { fileURLToPath } from "url";
 import { readFile, writeFile } from "fs/promises";
 import dts from "vite-plugin-dts";
+import packageJson from "./package.json";
 
 function reactVirtualized(): PluginOption {
   const WRONG_CODE = `import { bpfrpt_proptype_WindowScroller } from "../WindowScroller.js";`;
@@ -31,35 +32,37 @@ function reactVirtualized(): PluginOption {
   };
 }
 // https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [react(), reactVirtualized(), dts({ include: ["src"] })],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "@assets": path.resolve(__dirname, "./src/assets"),
-      "@components": path.resolve(__dirname, "./src/components"),
-      "@utils": path.resolve(__dirname, "./src/utils"),
-    },
-  },
-  build: {
-    lib: {
-      // Could also be a dictionary or array of multiple entry points
-      entry: resolve(__dirname, "src/components/index.ts"),
-      name: "VirtualTree",
-      // the proper extensions will be added
-      fileName: "virtual-tree",
-    },
-    rollupOptions: {
-      // make sure to externalize deps that shouldn't be bundled
-      // into your library
-      external: ["React"],
-      output: {
-        // Provide global variables to use in the UMD build
-        // for externalized deps
-        globals: {
-          react: "React",
+export default defineConfig((env) => {
+  // loadEnv(env.mode, process.cwd(), '')
+  const isLibMode = env.mode === "lib";
+
+  const libPlugins = isLibMode
+    ? [dts({ tsconfigPath: "./tsconfig.lib.json", rollupTypes: true })]
+    : [];
+
+  const buildOptions: UserConfig["build"] = isLibMode
+    ? {
+        lib: {
+          entry: resolve(__dirname, "src/components/index.ts"),
+          fileName: "virtual-tree",
+          formats: ["es", "cjs"],
         },
+        rollupOptions: {
+          external: [...Object.keys(packageJson.peerDependencies)],
+        },
+      }
+    : undefined;
+
+  return {
+    plugins: [react(), reactVirtualized(), ...libPlugins],
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+        "@assets": path.resolve(__dirname, "./src/assets"),
+        "@components": path.resolve(__dirname, "./src/components"),
+        "@utils": path.resolve(__dirname, "./src/utils"),
       },
     },
-  },
+    build: buildOptions,
+  };
 });

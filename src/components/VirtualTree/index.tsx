@@ -1,7 +1,13 @@
 "use client";
 
 import { MouseEvent, useEffect, useMemo, useState } from "react";
-import { List, ListRowRenderer } from "react-virtualized";
+import {
+  AutoSizer,
+  Grid,
+  GridCellRenderer,
+  CellMeasurer,
+  CellMeasurerCache,
+} from "react-virtualized";
 import type {
   TTreeButtonProps,
   TTreeNode,
@@ -51,7 +57,7 @@ const TreeButton = (props: TTreeButtonProps) => {
     <button
       {...rest}
       className={clsx(
-        "w-5 h-5 leading-[100%] text-center box-border border",
+        "w-5 h-5 leading-[100%] text-center box-border border flex-shrink-0",
         className
       )}
     >
@@ -85,14 +91,15 @@ const TreeNode = ({
     <div
       {...wrapperProps}
       style={{
-        marginLeft: `${toRem(level * 20 + (hasChilren ? 0 : 2))}rem`,
+        paddingLeft: `${toRem(level * 20 + (hasChilren ? 0 : 2))}rem`,
         ...wrapperProps?.style,
       }}
+      className="flex"
     >
       {hasChilren && <TreeButton onClick={toggle} expand={expand} />}
       <span
         className={clsx(
-          "hover:bg-blue-200 rounded-sm px-0.5",
+          "hover:bg-blue-200 rounded-sm px-1",
           hasChilren ? "ml-0.5" : "ml-5"
         )}
       >
@@ -103,9 +110,20 @@ const TreeNode = ({
 };
 
 const VirtualTree = (props: TTreeProps) => {
+  const { data: propsData, expandAll, ...rest } = props;
   const [data, setData] = useState<TTreeNode[]>([]);
-
-  const { flatDeep, setIndex } = useTreeFlat(props.expandAll);
+  const cache = useMemo(
+    () =>
+      new CellMeasurerCache({
+        defaultWidth: 100,
+        fixedHeight: true,
+        keyMapper: (rowIndex) => {
+          return data[rowIndex].id;
+        },
+      }),
+    [data]
+  );
+  const { flatDeep, setIndex } = useTreeFlat(expandAll);
 
   const value = useMemo(() => {
     return { data, setData, propsData: props };
@@ -115,27 +133,55 @@ const VirtualTree = (props: TTreeProps) => {
     return data.filter((item) => item.show);
   }, [data]);
 
-  const rowRenderer: ListRowRenderer = ({ index, key, style }) => {
-    const item = renderData[index];
-    return <TreeNode {...item} wrapperProps={{ style }} key={key} />;
+  const rowRenderer: GridCellRenderer = ({ rowIndex, key, style, parent }) => {
+    const item = renderData[rowIndex];
+    // return <TreeNode {...item} wrapperProps={{ style }} key={key} />;
+
+    return (
+      <CellMeasurer
+        cache={cache}
+        columnIndex={0}
+        key={key}
+        parent={parent}
+        rowIndex={rowIndex}
+      >
+        <div
+          style={{
+            ...style,
+            height: 24,
+            whiteSpace: "nowrap",
+          }}
+        >
+          <TreeNode {...item} />
+        </div>
+      </CellMeasurer>
+    );
   };
 
   useEffect(() => {
     setIndex(0);
-    setData(flatDeep(props.data));
-  }, [props.data]);
+    setData(flatDeep(propsData));
+  }, [propsData]);
 
   return (
     <TreeProvider value={value}>
-      {/* <TransitionGroup component={Fragment}> */}
-      <List
-        height={300}
-        width={500}
-        rowCount={renderData.length}
-        rowHeight={24}
-        rowRenderer={rowRenderer}
-      />
-      {/* </TransitionGroup> */}
+      <AutoSizer>
+        {({ width, height }) => (
+          <Grid
+            {...rest}
+            height={height}
+            width={width}
+            columnCount={1}
+            rowCount={renderData.length}
+            rowHeight={rest.rowHeight ?? 24}
+            cellRenderer={rest.rowRenderer ?? rowRenderer}
+            deferredMeasurementCache={cache}
+            columnWidth={cache.columnWidth}
+            overscanColumnCount={0}
+            overscanRowCount={2}
+          />
+        )}
+      </AutoSizer>
     </TreeProvider>
   );
 };
