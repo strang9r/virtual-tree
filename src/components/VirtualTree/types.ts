@@ -6,7 +6,7 @@ import {
   ReactNode,
   SetStateAction,
 } from "react";
-import { GridProps } from "react-virtualized";
+import { GridCellRenderer, GridProps } from "react-virtualized";
 
 export type TTreeNode = {
   id: string | number;
@@ -22,6 +22,7 @@ export type TTreeNode = {
 
 export type TTreeNodeProps = TTreeNode & {
   initialExpand?: boolean;
+  rowRenderer?: GridCellRenderer;
   wrapperProps?: DetailedHTMLProps<
     HTMLAttributes<HTMLDivElement>,
     HTMLDivElement

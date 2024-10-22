@@ -1,6 +1,4 @@
-"use client";
-
-import { MouseEvent, useEffect, useMemo, useState } from "react";
+import { MouseEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   AutoSizer,
   Grid,
@@ -75,6 +73,7 @@ const TreeNode = ({
   wrapperProps,
 }: TTreeNodeProps) => {
   const { data, setData } = useTreeContext();
+  const { style, children, ...restProps } = wrapperProps ?? {};
   const hasChilren = !!childrenLength;
 
   const toggle = (e: MouseEvent) => {
@@ -89,36 +88,36 @@ const TreeNode = ({
 
   return (
     <div
-      {...wrapperProps}
+      {...restProps}
       style={{
         paddingLeft: `${toRem(level * 20 + (hasChilren ? 0 : 2))}rem`,
-        ...wrapperProps?.style,
+        ...style,
       }}
-      className="flex"
+      className="flex items-center"
     >
       {hasChilren && <TreeButton onClick={toggle} expand={expand} />}
-      <span
-        className={clsx(
-          "hover:bg-blue-200 rounded-sm px-1",
-          hasChilren ? "ml-0.5" : "ml-5"
-        )}
-      >
-        {label}
-      </span>
+      {children ?? (
+        <span
+          className={clsx(
+            "hover:bg-blue-200 dark:hover:bg-blue-900 rounded-sm px-1 leading-normal",
+            hasChilren ? "ml-0.5" : "ml-5"
+          )}
+        >
+          {label}
+        </span>
+      )}
     </div>
   );
 };
 
 const VirtualTree = (props: TTreeProps) => {
-  const { data: propsData, expandAll, ...rest } = props;
+  const { data: propsData, expandAll, ...restProps } = props;
   const [data, setData] = useState<TTreeNode[]>([]);
   const cache = useMemo(
     () =>
       new CellMeasurerCache({
-        defaultWidth: 100,
-        fixedHeight: true,
         keyMapper: (rowIndex) => {
-          return data[rowIndex].id;
+          return data[rowIndex]?.id;
         },
       }),
     [data]
@@ -133,30 +132,33 @@ const VirtualTree = (props: TTreeProps) => {
     return data.filter((item) => item.show);
   }, [data]);
 
-  const rowRenderer: GridCellRenderer = ({ rowIndex, key, style, parent }) => {
-    const item = renderData[rowIndex];
-    // return <TreeNode {...item} wrapperProps={{ style }} key={key} />;
-
-    return (
-      <CellMeasurer
-        cache={cache}
-        columnIndex={0}
-        key={key}
-        parent={parent}
-        rowIndex={rowIndex}
-      >
-        <div
-          style={{
-            ...style,
-            height: 24,
-            whiteSpace: "nowrap",
-          }}
+  const rowRenderer: GridCellRenderer = useCallback(
+    (rowProps) => {
+      const { rowIndex, key, style, parent } = rowProps;
+      const item = renderData[rowIndex];
+      return (
+        <CellMeasurer
+          cache={cache}
+          columnIndex={0}
+          key={key}
+          parent={parent}
+          rowIndex={rowIndex}
         >
-          <TreeNode {...item} />
-        </div>
-      </CellMeasurer>
-    );
-  };
+          <TreeNode
+            {...item}
+            wrapperProps={{
+              style: {
+                ...style,
+                whiteSpace: "nowrap",
+              },
+              children: restProps.rowRenderer?.(item, rowProps),
+            }}
+          />
+        </CellMeasurer>
+      );
+    },
+    [renderData]
+  );
 
   useEffect(() => {
     setIndex(0);
@@ -168,15 +170,15 @@ const VirtualTree = (props: TTreeProps) => {
       <AutoSizer>
         {({ width, height }) => (
           <Grid
-            {...rest}
+            {...restProps}
             height={height}
             width={width}
             columnCount={1}
             rowCount={renderData.length}
-            rowHeight={rest.rowHeight ?? 24}
-            cellRenderer={rest.rowRenderer ?? rowRenderer}
+            cellRenderer={rowRenderer}
             deferredMeasurementCache={cache}
             columnWidth={cache.columnWidth}
+            rowHeight={cache.rowHeight}
             overscanColumnCount={0}
             overscanRowCount={2}
           />
